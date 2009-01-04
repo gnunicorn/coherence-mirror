@@ -1,0 +1,31 @@
+
+        [coherence.plugins.backend.media_server]
+        FSStore = coherence.backends.fs_storage:FSStore
+        MediaStore = coherence.backends.mediadb_storage:MediaStore
+        ElisaMediaStore = coherence.backends.elisa_storage:ElisaMediaStore
+        FlickrStore = coherence.backends.flickr_storage:FlickrStore
+        AxisCamStore = coherence.backends.axiscam_storage:AxisCamStore
+        BuzztardStore = coherence.backends.buzztard_control:BuzztardStore
+        IRadioStore = coherence.backends.iradio_storage:IRadioStore
+        LastFMStore = coherence.backends.lastfm_storage:LastFMStore
+        AmpacheStore = coherence.backends.ampache_storage:AmpacheStore
+        TrackerStore = coherence.backends.tracker_storage:TrackerStore
+        DVBDStore = coherence.backends.dvbd_storage:DVBDStore
+        AppleTrailersStore = coherence.backends.appletrailers_storage:AppleTrailersStore
+        LolcatsStore = coherence.backends.lolcats_storage:LolcatsStore
+        TEDStore = coherence.backends.ted_storage:TEDStore
+        BBCStore = coherence.backends.bbc_storage:BBCStore
+        SWR3Store = coherence.backends.swr3_storage:SWR3Store
+        Gallery2Store = coherence.backends.gallery2_storage:Gallery2Store
+
+        [coherence.plugins.backend.media_renderer]
+        ElisaPlayer = coherence.backends.elisa_renderer:ElisaPlayer
+        GStreamerPlayer = coherence.backends.gstreamer_renderer:GStreamerPlayer
+        BuzztardPlayer = coherence.backends.buzztard_control:BuzztardPlayer
+
+        [coherence.plugins.backend.binary_light]
+        SimpleLight = coherence.backends.light:SimpleLight
+
+        [coherence.plugins.backend.dimmable_light]
+        BetterLight = coherence.backends.light:BetterLight
+    
