@@ -1,1 +1,2 @@
 ConfigObj >= 4.3
+Twisted >= 2.5.0
