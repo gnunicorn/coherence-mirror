@@ -16,7 +16,7 @@
         TEDStore = coherence.backends.ted_storage:TEDStore
         BBCStore = coherence.backends.bbc_storage:BBCStore
         SWR3Store = coherence.backends.swr3_storage:SWR3Store
-		wGallery2Store = coherence.backends.gallery2_storage:Gallery2Store
+		Gallery2Store = coherence.backends.gallery2_storage:Gallery2Store
         YouTubeStore = coherence.backends.youtube_storage:YouTubeStore
         MiroStore = coherence.backends.miro_storage:MiroStore
         
