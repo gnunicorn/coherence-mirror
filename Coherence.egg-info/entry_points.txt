@@ -16,10 +16,10 @@
         TEDStore = coherence.backends.ted_storage:TEDStore
         BBCStore = coherence.backends.bbc_storage:BBCStore
         SWR3Store = coherence.backends.swr3_storage:SWR3Store
-		Gallery2Store = coherence.backends.gallery2_storage:Gallery2Store
+        Gallery2Store = coherence.backends.gallery2_storage:Gallery2Store
         YouTubeStore = coherence.backends.youtube_storage:YouTubeStore
         MiroStore = coherence.backends.miro_storage:MiroStore
-        
+
         [coherence.plugins.backend.media_renderer]
         ElisaPlayer = coherence.backends.elisa_renderer:ElisaPlayer
         GStreamerPlayer = coherence.backends.gstreamer_renderer:GStreamerPlayer
