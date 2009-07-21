@@ -130,17 +130,15 @@ class DevicesFragment(athena.LiveElement, log.Loggable):
     def render_devices(self, ctx, data):
         cl = []
         self.info('children: %s' % self.coherence.children)
-        for c in self.coherence.children:
-            device = self.coherence.get_device_with_id(c)
-            if device != None:
-                _,_,_,device_type,version = device.get_device_type().split(':')
-                cl.append( tags.li[tags.a(href='/'+c)[device_type,
-                                                      ':',
-                                                      version,
-                                                      ' ',
-                                                      device.get_friendly_name()]])
+        for child in self.coherence.children:
+            device = self.coherence.get_device_with_id(child)
+            if device is not None:
+                cl.append( tags.li[tags.a(href='/' + child)[
+                    device.get_friendly_device_type, ':',
+                    device.get_device_type_version, ' ',
+                    device.get_friendly_name()]])
             else:
-                cl.append( tags.li[c])
+                cl.append( tags.li[child])
         return ctx.tag[tags.ul[cl]]
 
 class LoggingFragment(athena.LiveElement, log.Loggable):
