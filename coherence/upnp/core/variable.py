@@ -21,6 +21,53 @@ from coherence import log
 
 import coherence.extern.louie as louie
 
+# parsing helpers for the data type as specified on
+# - UPNP Device Architecture v1.0 page 33/34:
+#   http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v1.0.pdf
+# - UPNP Device Architecutre v1.1 page 53/54:
+#   http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v1.1.pdf
+
+
+# maps the different allowed dataType-Types to corresponding python
+# parsing functions
+__parser_for_type__ = {
+    'ui1': int,
+    'ui2': int,
+    'ui4': int,
+    'i1': int,
+    'i2': int,
+    'i4': int,
+    'r4': float,
+    'r8': float,
+    'number': float,
+    'fixed.14.4': float,
+    'float': float,
+    # specific
+    'date': _parse_date,
+    'dateTime': _parse_date_time,
+    'dateTime.tz': _parse_date_time,
+    'time': _parse_time,
+    'boolean': utils.generalise_boolean,
+    'bin.base64': _parse_base64,
+    'bin.hex': _parse_hex,
+    # should we understand them as anything else than unicodes?
+    'uri': unicode,
+    'char': unicode,
+    'uuid': unicode,
+}
+
+def get_parser_for_type(data_type_node):
+    try:
+        return __parser_for_type__[data_type_node.findtext()]
+    except KeyError:
+        try:
+            # is it a vendor specific one we know about?
+            return __parser_for_type[data_type_node.attrib['type']]
+        except KeyError:
+            # or we just interpret it as a unicode string
+            return unicode
+
+
 class StateVariable(log.Loggable):
     logCategory = 'variable'
 
