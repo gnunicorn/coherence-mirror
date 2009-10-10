@@ -1,6 +1,5 @@
 
         [coherence.plugins.backend.media_server]
-        FeedStore = coherence.backends.feed_storage:FeedStore
         FSStore = coherence.backends.fs_storage:FSStore
         MediaStore = coherence.backends.mediadb_storage:MediaStore
         ElisaMediaStore = coherence.backends.elisa_storage:ElisaMediaStore
