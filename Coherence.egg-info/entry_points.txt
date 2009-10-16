@@ -17,13 +17,14 @@
         BBCStore = coherence.backends.bbc_storage:BBCStore
         SWR3Store = coherence.backends.swr3_storage:SWR3Store
         Gallery2Store = coherence.backends.gallery2_storage:Gallery2Store
-        YouTubeStore = coherence.backends.youtube_storage:YouTubeStore
+		YouTubeStore = coherence.backends.youtube_storage:YouTubeStore
         MiroGuideStore = coherence.backends.miroguide_storage:MiroGuideStore
         ITVStore = coherence.backends.itv_storage:ITVStore
         PicasaStore = coherence.backends.picasa_storage:PicasaStore
         TestStore = coherence.backends.test_storage:TestStore
         PlaylistStore = coherence.backends.playlist_storage:PlaylistStore
-
+		YamjStore = coherence.backends.yamj_storage:YamjStore
+                
         [coherence.plugins.backend.media_renderer]
         ElisaPlayer = coherence.backends.elisa_renderer:ElisaPlayer
         GStreamerPlayer = coherence.backends.gstreamer_renderer:GStreamerPlayer
