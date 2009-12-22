@@ -34,14 +34,16 @@ Description: Coherence is a framework written in Python,
         * more 'compatibility' improvements for different devices (e.g. Samsung TVs or Apache Felix)
         * and - as every time - the usual bugfixes and enhancements
         
-        Kudos go to Benjamin (lightyear) Kampmann,
-        Dominik (schrei5) Ruf,
-        Frank (dev) Scholz,
-        Friedrich (frinring) Kossebau,
-        Jean-Michel (jmsizun) Sizun,
-        Philippe (philn) Normand,
-        Sebastian (sebp) Pölsterl,
-        Zaheer (zaheerm) Merali
+        Kudos go to:
+        
+        * Benjamin (lightyear) Kampmann,
+        * Dominik (schrei5) Ruf,
+        * Frank (dev) Scholz,
+        * Friedrich (frinring) Kossebau,
+        * Jean-Michel (jmsizun) Sizun,
+        * Philippe (philn) Normand,
+        * Sebastian (sebp) Poelsterl,
+        * Zaheer (zaheerm) Merali
         
         
         
