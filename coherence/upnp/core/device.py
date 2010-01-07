@@ -12,15 +12,20 @@ from twisted.internet import defer
 from coherence.upnp.core.service import Service
 from coherence.upnp.core import utils
 from coherence import log
+from coherence.dispatcher import Dispatcher
 
 import coherence.extern.louie as louie
 
 ns = "urn:schemas-upnp-org:device-1-0"
 
-class Device(log.Loggable):
+class Device(Dispatcher):
     logCategory = 'device'
+    __signals__ = {'detection_completed': "Sending the information that everything has been detected",
+                    'remove_client': "What the hell should I know?"
+        }
 
     def __init__(self, parent=None):
+        Dispatcher.__init__(self)
         self.parent = parent
         self.services = []
         #self.uid = self.usn[:-len(self.st)-2]
@@ -29,16 +34,13 @@ class Device(log.Loggable):
         self.friendly_device_type = "[unknown]"
         self.device_type_version = 0
         self.udn = None
-        self.detection_completed = False
         self.client = None
         self.icons = []
         self.devices = []
 
-        louie.connect( self.receiver, 'Coherence.UPnP.Service.detection_completed', self)
-        louie.connect( self.service_detection_failed, 'Coherence.UPnP.Service.detection_failed', self)
-
     def __repr__(self):
-        return "embedded device %r %r, parent %r" % (self.friendly_name,self.device_type,self.parent)
+        return "embedded device %r %r, parent %r" % \
+                (self.friendly_name, self.device_type, self.parent)
 
     #def __del__(self):
     #    #print "Device removal completed"
@@ -52,43 +54,35 @@ class Device(log.Loggable):
              'services': [x.as_dict() for x in self.services]}
         icons = []
         for icon in self.icons:
-            icons.append({"mimetype":icon['mimetype'],"url":icon['url'], "height":icon['height'], "width":icon['width'], "depth":icon['depth']})
+            icons.append({"mimetype":icon['mimetype'],
+                    "url":icon['url'], "height":icon['height'],
+                    "width":icon['width'], "depth":icon['depth']})
         d['icons'] = icons
         return d
 
-    def remove(self,*args):
+    def remove(self, *args):
         self.info("removal of ", self.friendly_name, self.udn)
-        while len(self.devices)>0:
-            device = self.devices.pop()
+
+        devices, self.devices = self.devices, []
+        for device in devices:
             self.debug("try to remove %r", device)
             device.remove()
-        while len(self.services)>0:
-            service = self.services.pop()
+
+        services, self.services = self.services, []
+        for service in services:
             self.debug("try to remove %r", service)
             service.remove()
-        if self.client != None:
-            louie.send('Coherence.UPnP.Device.remove_client', None, self.udn, self.client)
+
+        if self.client:
+            self.emit('remove_client', None, self.udn, self.client)
             self.client = None
-        #del self
 
-    def receiver(self, *args, **kwargs):
-        if self.detection_completed == True:
-            return
-        for s in self.services:
-            if s.detection_completed == False:
-                return
-        if self.udn == None:
-            return
-        self.detection_completed = True
-        if self.parent != None:
-            self.info("embedded device %r %r initialized, parent %r" % (self.friendly_name,self.device_type,self.parent))
-        louie.send('Coherence.UPnP.Device.detection_completed', None, device=self)
-        if self.parent != None:
-            louie.send('Coherence.UPnP.Device.detection_completed', self.parent, device=self)
-        else:
-            louie.send('Coherence.UPnP.Device.detection_completed', self, device=self)
+    def _completed(self):
+        self.debug("checking for completion")
+        if self.detection_completed and self.root_detection_completed:
+            self.emit('detection_completed', device=self)
 
-    def service_detection_failed( self, device):
+    def service_detection_failed(self, device):
         self.remove()
 
     def get_id(self):
@@ -100,15 +94,26 @@ class Device(log.Loggable):
     def get_services(self):
         return self.services
 
-    def get_service_by_type(self,type):
+    def get_service_by_type(self, type):
         for service in self.services:
-            _,_,_,service_class,version = service.service_type.split(':')
+            _, _, _, service_class, version = service.service_type.split(':')
             if service_class == type:
                 return service
 
     def add_service(self, service):
         self.debug("add_service %r", service)
         self.services.append(service)
+        service.connect("detection_completed",
+                self._service_detection_completed)
+
+    def _service_detection_completed(self):
+        self._completed_services += 1
+        self._completed()
+
+    @property
+    def detection_completed(self):
+        service_len = len(self.services)
+        return  service_len > 0 and service_len == self._completed_services
 
     def remove_service_with_usn(self, service_usn):
         for service in self.services:
@@ -253,9 +258,9 @@ class Device(log.Loggable):
                     i['realurl'] = icon.find('./{%s}url' % ns).text
                     i['url'] = icon.find('./{%s}url' % ns).text
                     if i['url'].startswith('/'):
-                        i['url'] = ''.join((url_base,i['url']))
+                        i['url'] = ''.join((url_base, i['url']))
                     self.icons.append(i)
-                    self.debug("adding icon %r for %r" % (i,self.friendly_name))
+                    self.debug("adding icon %r for %r" % (i, self.friendly_name))
                 except:
                     import traceback
                     self.debug(traceback.format_exc())
@@ -294,7 +299,7 @@ class Device(log.Loggable):
                     self.add_device(embedded_device)
                     embedded_device.parse_device(d)
 
-        self.receiver()
+        self._completed()
 
     def get_location(self):
         return self.parent.get_location()
@@ -442,9 +447,9 @@ class RootDevice(Device):
         self.location = infos['LOCATION']
         self.manifestation = infos['MANIFESTATION']
         self.host = infos['HOST']
-        self.root_detection_completed = False
+        self._completed_services = 0
+        self._completed_devices = 0
         Device.__init__(self, None)
-        louie.connect( self.device_detect, 'Coherence.UPnP.Device.detection_completed', self)
         # we need to handle root device completion
         # these events could be ourself or our children.
         self.parse_description()
@@ -480,29 +485,19 @@ class RootDevice(Device):
             return True
         return False
 
-    def device_detect( self, *args, **kwargs):
-        self.debug("device_detect %r", kwargs)
-        if self.root_detection_completed == True:
-            return
-        self.debug("root_detection_completed %r", self.root_detection_completed)
-        # our self is not complete yet
-        if self.detection_completed == False:
-            return
-        self.debug("detection_completed %r", self.detection_completed)
-        # now check child devices.
-        self.debug("self.devices %r", self.devices)
-        for d in self.devices:
-            self.debug("check device %r %r", d.detection_completed, d)
-            if d.detection_completed == False:
-                return
-        # now must be done, so notify root done
-        self.root_detection_completed = True
-        self.info("rootdevice %r %r %r initialized, manifestation %r" % (self.friendly_name,self.st,self.host,self.manifestation))
-        louie.send('Coherence.UPnP.RootDevice.detection_completed', None, device=self)
-
     def add_device(self, device):
         self.debug("RootDevice add_device %r", device)
         self.devices.append(device)
+        device.connect("detection_completed", self._device_completed)
+
+    def _device_complete(self, device):
+        self._completed_devices += 1
+        self._completed()
+
+    @property
+    def root_detection_completed(self):
+        devices = len(self.devices)
+        return devices == self._completed_devices
 
     def get_devices(self):
         self.debug("RootDevice get_devices:", self.devices)

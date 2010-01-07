@@ -24,7 +24,9 @@ from twisted.internet import defer, reactor
 from twisted.python import failure, util
 from twisted.internet import task
 
+# FIXME: replace me
 import coherence.extern.louie as louie
+from coherence.dispatcher import Dispatcher
 
 from coherence import log
 
@@ -38,11 +40,15 @@ def unsubscribe(service):
     if subscribers.has_key(service.get_sid()):
         del subscribers[service.get_sid()]
 
-class Service(log.Loggable):
+class Service(Dispatcher):
     logCategory = 'service_client'
+
+    __signals__ = {'notified': "Whatever",
+                    'detection_completed': "Something else"}
 
     def __init__(self, service_type, service_id, location, control_url,
                  event_sub_url, presentation_url, scpd_url, device):
+        Dispatcher.__init__(self)
         #if not control_url.startswith('/'):
         #    control_url = "/%s" % control_url
         #if not event_sub_url.startswith('/'):
@@ -53,7 +59,6 @@ class Service(log.Loggable):
         #    scpd_url = "/%s" % scpd_url
 
         self.service_type = service_type
-        self.detection_completed = False
         self.id = service_id
         self.control_url = control_url
         self.event_sub_url = event_sub_url
@@ -317,8 +322,7 @@ class Service(log.Loggable):
             # The clients (e.g. media_server_client) check for last time to detect whether service detection is complete
             # so we need to set it here and now to avoid a potential race condition
             self.last_time_updated = time.time()
-            louie.send('Coherence.UPnP.DeviceClient.Service.notified', sender=self.device, service=self)
-            self.info("send signal Coherence.UPnP.DeviceClient.Service.notified for %r" % self)
+            self.emit('notified', sender=self.device, service=self)
         self.last_time_updated = time.time()
 
     def parse_actions(self):
@@ -365,9 +369,7 @@ class Service(log.Loggable):
 
 
             #print 'service parse:', self, self.device
-            self.detection_completed = True
-            louie.send('Coherence.UPnP.Service.detection_completed', sender=self.device, device=self.device)
-            self.info("send signal Coherence.UPnP.Service.detection_completed for %r" % self)
+            self.emit('detection_completed')
             """
             if (self.last_time_updated == None):
                 if( self.id.endswith('AVTransport') or

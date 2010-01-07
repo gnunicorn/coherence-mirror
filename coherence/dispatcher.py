@@ -1,5 +1,6 @@
 
 from twisted.internet import defer
+from coherence.log import Loggable
 
 class Receiver(object):
     def __init__(self, signal, callback, args, kwargs):
@@ -30,7 +31,7 @@ class Receiver(object):
 
 class UnknownSignal(Exception): pass
 
-class Dispatcher(object):
+class Dispatcher(Loggable):
 
     __signals__ = {}
 
@@ -64,12 +65,15 @@ class Dispatcher(object):
     def emit(self, signal, *args, **kwargs):
         results = []
         errors = []
+        self.info("emitting %s (%s, %s)", signal, args, kwargs)
         for receiver in self._get_receivers(signal):
             try:
                 results.append((receiver, receiver(*args, **kwargs)))
             except Exception, e:
                 errors.append((receiver, e))
-
+        if errors:
+            self.warning("Problems when triggering %s (%s, %s): %r",
+                    signal, args, kwargs, errors)
         return results, errors
 
     def deferred_emit(self, signal, *args, **kwargs):
