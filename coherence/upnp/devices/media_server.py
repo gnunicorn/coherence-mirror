@@ -37,6 +37,7 @@ from coherence.upnp.services.servers.media_receiver_registrar_server import Fake
 
 from coherence.upnp.devices.basics import BasicDeviceMixin
 
+from coherence.upnp.devices.basics import BasicClient
 from coherence import log
 
 COVER_REQUEST_INDICATOR = re.compile(".*?cover\.[A-Z|a-z]{3,4}$")
@@ -45,7 +46,7 @@ ATTACHMENT_REQUEST_INDICATOR = re.compile(".*?attachment=.*$")
 
 TRANSCODED_REQUEST_INDICATOR = re.compile(".*/transcoded/.*$")
 
-class MSRoot(resource.Resource, log.Loggable):
+class MSRoot(resource.Resource, BasicClient):
     logCategory = 'mediaserver'
 
     def __init__(self, server, store):

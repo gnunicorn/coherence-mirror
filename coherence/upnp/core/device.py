@@ -74,13 +74,14 @@ class Device(Dispatcher):
             service.remove()
 
         if self.client:
-            self.emit('remove_client', None, self.udn, self.client)
+            self.client.remove()
+            #self.emit('remove_client', self.udn, self.client)
             self.client = None
 
     def _completed(self):
         self.debug("checking for completion")
         if self.detection_completed and self.root_detection_completed:
-            self.emit('detection_completed', device=self)
+            self.emit('detection_completed')
 
     def service_detection_failed(self, device):
         self.remove()

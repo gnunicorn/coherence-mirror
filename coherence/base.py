@@ -15,6 +15,7 @@ from twisted.internet import task, address, defer
 from twisted.internet import reactor
 from twisted.web import resource,static
 
+from coherence.dispatcher import Dispatcher
 import coherence.extern.louie as louie
 
 from coherence import __version__
@@ -31,7 +32,6 @@ from coherence.upnp.devices.media_server import MediaServer
 from coherence.upnp.devices.media_renderer import MediaRenderer
 from coherence.upnp.devices.binary_light import BinaryLight
 from coherence.upnp.devices.dimmable_light import DimmableLight
-
 
 from coherence import log
 
@@ -199,9 +199,10 @@ class Plugins(log.Loggable):
             self._plugins[cls.__name__.split('.')[-1]] = cls
 
 
-class Coherence(log.Loggable):
+class Coherence(Dispatcher):
     logCategory = 'coherence'
     _instance_ = None  # Singleton
+    __signals__ = {"device_detected": "Emitted when the device detection is done"}
 
     def __new__(cls, *args, **kwargs):
         obj = getattr(cls, '_instance_', None)
@@ -216,8 +217,8 @@ class Coherence(log.Loggable):
             obj.cls = cls
             return obj
 
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, *arg, **kwargs):
+        Dispatcher.__init__(self)
 
     def clear(self):
         """ we do need this to survive multiple calls
@@ -316,7 +317,7 @@ class Coherence(log.Loggable):
         self.ssdp_server = SSDPServer(test=unittest,interface=self.hostname)
         louie.connect( self.create_device, 'Coherence.UPnP.SSDP.new_device', louie.Any)
         louie.connect( self.remove_device, 'Coherence.UPnP.SSDP.removed_device', louie.Any)
-        louie.connect( self.add_device, 'Coherence.UPnP.RootDevice.detection_completed', louie.Any)
+        #louie.connect( self.add_device, 'Coherence.UPnP.RootDevice.detection_completed', louie.Any)
         #louie.connect( self.receiver, 'Coherence.UPnP.Service.detection_completed', louie.Any)
 
         self.ssdp_server.subscribe("new_device", self.add_device)
@@ -619,6 +620,7 @@ class Coherence(log.Loggable):
         if infos['ST'] == 'upnp:rootdevice':
             self.info("creating upnp:rootdevice ", infos['USN'])
             root = RootDevice(infos)
+            root.connect("detection_completed", self.add_device, device=root)
         else:
             self.info("creating device/service ",infos['USN'])
             root_id = infos['USN'][:-len(infos['ST'])-2]
@@ -630,8 +632,11 @@ class Coherence(log.Loggable):
         #    self.callback("new_device", infos['ST'], infos)
 
     def add_device(self, device):
-        self.info("adding device",device.get_id(),device.get_usn(),device.friendly_device_type)
+        self.info("adding device",
+                device.get_id(), device.get_usn(), device.friendly_device_type)
         self.devices.append(device)
+        # only temporaly until it is a Dispatcher
+        self.emit("device_detected", device)
 
     def remove_device(self, device_type, infos):
         self.info("removed device",infos['ST'],infos['USN'])
@@ -655,10 +660,15 @@ class Coherence(log.Loggable):
             """ probably the backend init failed """
             pass
 
-    def connect(self,receiver,signal=louie.signal.All,sender=louie.sender.Any, weak=True):
+    def connect(self, *args, **kwargs):
+        #receiver,signal=louie.signal.All,sender=louie.sender.Any, weak=True):
         """ wrapper method around louie.connect
         """
-        louie.connect(receiver,signal=signal,sender=sender,weak=weak)
+        try:
+            Dispatcher.connect(self, *args, **kwargs)
+        except (TypeError, UnknownSignal), e:
+            self.warning("Was unable to connect to dispatcher signal (%r). Passing parameters to central louie instead", e)
+            louie.connect(*args, **kwargs)
 
     def disconnect(self,receiver,signal=louie.signal.All,sender=louie.sender.Any, weak=True):
         """ wrapper method around louie.disconnect

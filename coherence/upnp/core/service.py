@@ -43,7 +43,7 @@ def unsubscribe(service):
 class Service(Dispatcher):
     logCategory = 'service_client'
 
-    __signals__ = {'notified': "Whatever",
+    __signals__ = {'notify': "Whatever",
                     'detection_completed': "Something else"}
 
     def __init__(self, service_type, service_id, location, control_url,
@@ -276,7 +276,7 @@ class Service(Dispatcher):
         self.info("renew_subscription")
         event.subscribe(self)
 
-    def process_event(self,event):
+    def process_event(self, event):
         self.info("process event %r %r" % (self,event))
         for var_name, var_value  in event.items():
             if var_name == 'LastChange':
@@ -322,7 +322,7 @@ class Service(Dispatcher):
             # The clients (e.g. media_server_client) check for last time to detect whether service detection is complete
             # so we need to set it here and now to avoid a potential race condition
             self.last_time_updated = time.time()
-            self.emit('notified', sender=self.device, service=self)
+            self.emit('notify', sender=self.device, service=self)
         self.last_time_updated = time.time()
 
     def parse_actions(self):

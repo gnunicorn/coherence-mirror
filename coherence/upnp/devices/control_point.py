@@ -18,6 +18,7 @@ from coherence.upnp.devices.media_renderer_client import MediaRendererClient
 from coherence.upnp.devices.binary_light_client import BinaryLightClient
 from coherence.upnp.devices.dimmable_light_client import DimmableLightClient
 
+from coherence.dispatcher import Dispatcher
 import coherence.extern.louie as louie
 
 from coherence import log
@@ -54,10 +55,14 @@ class DeviceQuery(object):
            device.get_uuid() == self.pattern):
             self.fire(device)
 
-class ControlPoint(log.Loggable):
+class ControlPoint(Dispatcher):
     logCategory = 'controlpoint'
+    ALL_CLIENTS = ['MediaServer', 'MediaRenderer',
+                   'BinaryLight', 'DimmableLight']
+    __signals__ = {"client_detected": "Triggered when a new client is done. First option is the client"}
 
-    def __init__(self,coherence,auto_client=['MediaServer','MediaRenderer','BinaryLight','DimmableLight']):
+    def __init__(self, coherence, auto_client=ALL_CLIENTS):
+        Dispatcher.__init__(self)
         self.coherence = coherence
 
         self.info("Coherence UPnP ControlPoint starting...")
@@ -67,21 +72,19 @@ class ControlPoint(log.Loggable):
                                         XMLRPC(self))
 
         self.auto_client = auto_client
-        self.queries=[]
+        self.queries = []
 
         for device in self.get_devices():
-            self.check_device( device)
+            self.check_device(device)
 
-        louie.connect(self.check_device, 'Coherence.UPnP.Device.detection_completed', louie.Any)
-        louie.connect(self.remove_client, 'Coherence.UPnP.Device.remove_client', louie.Any)
-
-        louie.connect(self.completed, 'Coherence.UPnP.DeviceClient.detection_completed', louie.Any)
+        self.coherence.connect("device_detected", self.check_device)
+        #louie.connect(self.remove_client, 'Coherence.UPnP.Device.remove_client', louie.Any)
 
     def browse(self, device):
         device = self.coherence.get_device_with_usn(infos['USN'])
         if not device:
             return
-        self.check_device( device)
+        self.check_device(device)
 
     def process_queries(self, device):
         for query in self.queries:
@@ -90,20 +93,10 @@ class ControlPoint(log.Loggable):
     def add_query(self, query):
         for device in self.get_devices():
             query.check(device)
-        if query.fired == False and query.timeout == 0:
+        if not query.fired and query.timeout == 0:
             query.callback(None)
         else:
             self.queries.append(query)
-
-    def connect(self,receiver,signal=louie.signal.All,sender=louie.sender.Any, weak=True):
-        """ wrapper method around louie.connect
-        """
-        louie.connect(receiver,signal=signal,sender=sender,weak=weak)
-
-    def disconnect(self,receiver,signal=louie.signal.All,sender=louie.sender.Any, weak=True):
-        """ wrapper method around louie.disconnect
-        """
-        louie.disconnect(receiver,signal=signal,sender=sender,weak=weak)
 
     def get_devices(self):
         return self.coherence.get_devices()
@@ -114,14 +107,15 @@ class ControlPoint(log.Loggable):
     def get_device_by_host(self, host):
         return self.coherence.get_device_by_host(host)
 
-    def check_device( self, device):
-        if device.client == None:
-            self.info("found device %s of type %s - %r" %(device.get_friendly_name(),
-                                                device.get_device_type(), device.client))
+    def check_device(self, device):
+        if not device.client:
+            self.info("found device %s of type %s - %r",
+                    device.get_friendly_name(), device.get_device_type(),
+                    device.client)
             short_type = device.get_friendly_device_type()
             if short_type in self.auto_client and short_type is not None:
-                self.info("identified %s %r" %
-                        (short_type, device.get_friendly_name()))
+                self.info("identified %s %r", short_type,
+                        device.get_friendly_name())
 
                 if short_type == 'MediaServer':
                     client = MediaServerClient(device)
@@ -133,14 +127,14 @@ class ControlPoint(log.Loggable):
                     client = DimmableLightClient(device)
 
                 client.coherence = self.coherence
-                device.set_client( client)
+                client.connect("detection_completed",
+                        self._client_detection_done, client)
+                device.set_client(client)
 
         self.process_queries(device)
 
-    def completed(self, client, udn):
-        self.info('sending signal Coherence.UPnP.ControlPoint.%s.detected %r' % (client.device_type, udn))
-        louie.send('Coherence.UPnP.ControlPoint.%s.detected' % client.device_type, None,
-                               client=client,udn=udn)
+    def _client_detection_done(self, client):
+        self.emit("client_detected", client)
 
     def remove_client(self, udn, client):
         louie.send('Coherence.UPnP.ControlPoint.%s.removed' % client.device_type, None, udn=udn)

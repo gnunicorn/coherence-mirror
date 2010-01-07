@@ -15,10 +15,20 @@ from coherence import __version__
 
 from coherence.extern.et import ET, indent
 
+from coherence.dispatcher import Dispatcher
 import coherence.extern.louie as louie
 
-
 from coherence import log
+
+
+class BasicClient(Dispatcher):
+    __signals__ = {
+            "detection_completed": "Triggered when the detection is done"
+        }
+    def __init__(self, device):
+        Dispatcher.__init__(self)
+        self.device = device
+        self.startup()
 
 
 class DeviceHttpRoot(resource.Resource, log.Loggable):
